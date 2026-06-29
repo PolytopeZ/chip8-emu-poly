@@ -4,6 +4,7 @@
 
 void Chip8::reset()
 {
+    // Reset everthing from Chip8
     std::memset(memory, 0, sizeof(memory));
     std::memset(registers, 0, sizeof(registers));
     stackPointer = 0;
@@ -16,7 +17,8 @@ void Chip8::reset()
     std::memset(keys, false, sizeof(keys));
     draw_flag = false;
 
-    // TODO: add fonts + loading
+    // Init fonts
+    std::memcpy(memory + FONT_BEGIN, font, sizeof(font));
 }
 
 bool Chip8::load_rom(const char *path)

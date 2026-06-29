@@ -21,5 +21,6 @@ int main(int argc, char **argv)
     // TODO : debug remove after
     uint16_t op = (cpu.memory[MEMORY_BEGIN] << 8) | cpu.memory[MEMORY_BEGIN + 1];
     std::printf(("first op: %04X\n"), op);
+    std::printf("font[0]=%02X, font[1]=%02X\n", cpu.memory[FONT_BEGIN], cpu.memory[FONT_BEGIN + 1]);
     return 0;
 }
