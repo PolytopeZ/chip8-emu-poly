@@ -1,5 +1,7 @@
 #include <cstdio>
 #include "chip8.hpp"
+#include <thread>
+#include <chrono>
 
 int main(int argc, char **argv)
 {
@@ -18,9 +20,31 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    // TODO : debug remove after
-    uint16_t op = (cpu.memory[MEMORY_BEGIN] << 8) | cpu.memory[MEMORY_BEGIN + 1];
-    std::printf(("first op: %04X\n"), op);
-    std::printf("font[0]=%02X, font[1]=%02X\n", cpu.memory[FONT_BEGIN], cpu.memory[FONT_BEGIN + 1]);
+    // Todo : swap with a bool running
+    while (1)
+    {
+        for (int i = 0; i < 10; i++)
+        {
+            cpu.cycle();
+        }
+        cpu.tick_timers();
+
+        if (cpu.draw_flag)
+        {
+            // Todo : Temp display to replace
+            std::printf("\x1b[H");
+            for (int y = 0; y < 32; y++)
+            {
+                for (int x = 0; x < 64; x++)
+                {
+                    std::putchar(cpu.display[y * 64 + x] ? '#' : ' ');
+                }
+                std::putchar('\n');
+            }
+            std::fflush(stdout);
+            cpu.draw_flag = false;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(16)); // approx 60fps
+    }
     return 0;
 }
