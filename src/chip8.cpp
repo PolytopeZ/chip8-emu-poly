@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
+#include <ctime>
 
 Chip8::Handler Chip8::main_table[16];
 Chip8::Handler Chip8::alu_table[16];
@@ -75,6 +76,9 @@ void Chip8::init_tables()
 
 void Chip8::reset()
 {
+    // Rand seed for op_CXNN
+    std::srand(std::time(nullptr));
+
     // Setup tables
     static bool tables_ready = false;
     if (!tables_ready)
@@ -178,45 +182,163 @@ void Chip8::op_00E0()
     std::memset(display, false, sizeof(display));
     draw_flag = true;
 }
-void Chip8::op_00EE() {}
+
+void Chip8::op_00EE()
+{
+    stackPointer--;
+    programCounter = stack[stackPointer];
+}
 
 // 0x1..7___
 void Chip8::op_1NNN()
 {
     programCounter = get_nnn(opcode);
 }
-void Chip8::op_2NNN() {}
-void Chip8::op_3XNN() {}
-void Chip8::op_4XNN() {}
-void Chip8::op_5XY0() {}
+
+void Chip8::op_2NNN()
+{
+    stack[stackPointer] = programCounter;
+    stackPointer++;
+    programCounter = get_nnn(opcode);
+}
+
+void Chip8::op_3XNN()
+{
+    if (registers[get_x(opcode)] == get_nn(opcode))
+    {
+        programCounter += 2;
+    }
+}
+
+void Chip8::op_4XNN()
+{
+    if (registers[get_x(opcode)] != get_nn(opcode))
+    {
+        programCounter += 2;
+    }
+}
+
+void Chip8::op_5XY0()
+{
+    if (registers[get_x(opcode)] == registers[get_y(opcode)])
+    {
+        programCounter += 2;
+    }
+}
+
 void Chip8::op_6XNN()
 {
     registers[get_x(opcode)] = get_nn(opcode);
 }
+
 void Chip8::op_7XNN()
 {
     registers[get_x(opcode)] += get_nn(opcode);
 }
 
 // 0x8___
-void Chip8::op_8XY0() {}
-void Chip8::op_8XY1() {}
-void Chip8::op_8XY2() {}
-void Chip8::op_8XY3() {}
-void Chip8::op_8XY4() {}
-void Chip8::op_8XY5() {}
-void Chip8::op_8XY6() {}
-void Chip8::op_8XY7() {}
-void Chip8::op_8XYE() {}
+void Chip8::op_8XY0()
+{
+    registers[get_x(opcode)] = registers[get_y(opcode)];
+}
+
+void Chip8::op_8XY1()
+{
+    registers[get_x(opcode)] |= registers[get_y(opcode)];
+}
+
+void Chip8::op_8XY2()
+{
+    registers[get_x(opcode)] &= registers[get_y(opcode)];
+}
+
+void Chip8::op_8XY3()
+{
+    registers[get_x(opcode)] ^= registers[get_y(opcode)];
+}
+
+void Chip8::op_8XY4()
+{
+    uint16_t res = registers[get_x(opcode)] + registers[get_y(opcode)];
+    registers[get_x(opcode)] = res & 0xFF;
+    if (res > 0xFF)
+    {
+        registers[0xF] = 1;
+    }
+    else
+    {
+        registers[0xF] = 0;
+    }
+}
+
+void Chip8::op_8XY5()
+{
+    uint8_t vx = registers[get_x(opcode)];
+    uint8_t vy = registers[get_y(opcode)];
+    registers[get_x(opcode)] = vx - vy;
+    if (vx >= vy)
+    {
+        registers[0xF] = 1;
+    }
+    else
+    {
+        registers[0xF] = 0;
+    }
+}
+
+void Chip8::op_8XY6()
+{
+    uint8_t vy = registers[get_y(opcode)];
+    registers[get_x(opcode)] = vy >> 1;
+    registers[0xF] = vy & 1;
+}
+
+void Chip8::op_8XY7()
+{
+    uint8_t vx = registers[get_x(opcode)];
+    uint8_t vy = registers[get_y(opcode)];
+    registers[get_x(opcode)] = vy - vx;
+    if (vy >= vx)
+    {
+        registers[0xF] = 1;
+    }
+    else
+    {
+        registers[0xF] = 0;
+    }
+}
+
+void Chip8::op_8XYE()
+{
+    uint8_t vy = registers[get_y(opcode)];
+    registers[get_x(opcode)] = vy << 1;
+    registers[0xF] = (vy >> 7) & 1;
+}
 
 // 0x9..D___
-void Chip8::op_9XY0() {}
+void Chip8::op_9XY0()
+{
+    if (registers[get_x(opcode)] != registers[get_y(opcode)])
+    {
+        programCounter += 2;
+    }
+}
+
 void Chip8::op_ANNN()
 {
     index = get_nnn(opcode);
 }
-void Chip8::op_BNNN() {}
-void Chip8::op_CXNN() {}
+
+void Chip8::op_BNNN()
+{
+    programCounter = get_nnn(opcode) + registers[0x0];
+}
+
+void Chip8::op_CXNN()
+{
+    registers[get_x(opcode)] = (std::rand() & 0xFF) & get_nn(opcode);
+}
+
 void Chip8::op_DXYN()
 {
     uint8_t x0 = registers[get_x(opcode)] % 64;
@@ -246,16 +368,71 @@ void Chip8::op_DXYN()
 }
 
 // 0xE___
-void Chip8::op_EX9E() {}
-void Chip8::op_EXA1() {}
+void Chip8::op_EX9E()
+{
+    // Todo
+}
+
+void Chip8::op_EXA1()
+{
+    // Todo
+}
 
 // 0xF___
-void Chip8::op_FX07() {}
-void Chip8::op_FX0A() {}
-void Chip8::op_FX15() {}
-void Chip8::op_FX18() {}
-void Chip8::op_FX1E() {}
-void Chip8::op_FX29() {}
-void Chip8::op_FX33() {}
-void Chip8::op_FX55() {}
-void Chip8::op_FX65() {}
+void Chip8::op_FX07()
+{
+    registers[get_x(opcode)] = delay;
+}
+
+void Chip8::op_FX0A()
+{
+    // Todo
+}
+
+void Chip8::op_FX15()
+{
+    delay = registers[get_x(opcode)];
+}
+
+void Chip8::op_FX18()
+{
+    sound = registers[get_x(opcode)];
+}
+
+void Chip8::op_FX1E()
+{
+    index += registers[get_x(opcode)];
+}
+
+void Chip8::op_FX29()
+{
+    index = FONT_BEGIN + registers[get_x(opcode)] * 5; // *5 'cause font are 5 bytes
+}
+
+void Chip8::op_FX33()
+{
+    uint8_t v = registers[get_x(opcode)];
+    memory[index] = v / 100;
+    memory[index + 1] = (v / 10) % 10;
+    memory[index + 2] = v % 10;
+}
+
+void Chip8::op_FX55()
+{
+    uint8_t x = get_x(opcode);
+    for (uint8_t i = 0; i <= x; i++)
+    {
+        memory[index + i] = registers[i];
+    }
+    index += x + 1;
+}
+
+void Chip8::op_FX65()
+{
+    uint8_t x = get_x(opcode);
+    for (uint8_t i = 0; i <= x; i++)
+    {
+        registers[i] = memory[index + i];
+    }
+    index += x + 1;
+}
