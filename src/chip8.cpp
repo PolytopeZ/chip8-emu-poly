@@ -173,17 +173,30 @@ void Chip8::op_F_group()
 
 // Todo : Code the impl
 // 0x0___
-void Chip8::op_00E0() {}
+void Chip8::op_00E0()
+{
+    std::memset(display, false, sizeof(display));
+    draw_flag = true;
+}
 void Chip8::op_00EE() {}
 
 // 0x1..7___
-void Chip8::op_1NNN() {}
+void Chip8::op_1NNN()
+{
+    programCounter = get_nnn(opcode);
+}
 void Chip8::op_2NNN() {}
 void Chip8::op_3XNN() {}
 void Chip8::op_4XNN() {}
 void Chip8::op_5XY0() {}
-void Chip8::op_6XNN() {}
-void Chip8::op_7XNN() {}
+void Chip8::op_6XNN()
+{
+    registers[get_x(opcode)] = get_nn(opcode);
+}
+void Chip8::op_7XNN()
+{
+    registers[get_x(opcode)] += get_nn(opcode);
+}
 
 // 0x8___
 void Chip8::op_8XY0() {}
@@ -198,10 +211,39 @@ void Chip8::op_8XYE() {}
 
 // 0x9..D___
 void Chip8::op_9XY0() {}
-void Chip8::op_ANNN() {}
+void Chip8::op_ANNN()
+{
+    index = get_nnn(opcode);
+}
 void Chip8::op_BNNN() {}
 void Chip8::op_CXNN() {}
-void Chip8::op_DXYN() {}
+void Chip8::op_DXYN()
+{
+    uint8_t x0 = registers[get_x(opcode)] % 64;
+    uint8_t y0 = registers[get_y(opcode)] % 32;
+    uint8_t n = get_n(opcode);
+    registers[0xF] = 0;
+
+    for (uint8_t row = 0; row < n; row++)
+    {
+        if (y0 + row >= 32)
+            break;
+        uint8_t sprite_byte = memory[index + row];
+
+        for (uint8_t col = 0; col < 8; col++)
+        {
+            if (x0 + col >= 64)
+                break;
+            bool pixel = (sprite_byte >> (7 - col)) & 1;
+            size_t idx = (y0 + row) * 64 + (x0 + col);
+
+            if (pixel && display[idx])
+                registers[0xF] = 1;
+            display[idx] ^= pixel;
+        }
+    }
+    draw_flag = true;
+}
 
 // 0xE___
 void Chip8::op_EX9E() {}
